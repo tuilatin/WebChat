@@ -8,7 +8,7 @@ RUN mvn -B package -DskipTests
 # Run app
 FROM eclipse-temurin:22-jre-jammy
 WORKDIR /app
-COPY --from=build /workspace/target/*shaded.jar app.jar
+COPY --from=build /workspace/target/ChatAppRealTime-1.0-SNAPSHOT.jar app.jar
 RUN mkdir -p uploads
 VOLUME /app/uploads
 EXPOSE 4567
