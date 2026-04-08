@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Workspace</title>
+  <link rel="stylesheet" href="./chat.css">
+</head>
+<body>
+  <div class="page-bg">
+    <main class="chat-app">
+      <aside class="nav-col">
+        <div class="avatar big">T</div>
+        <nav class="menu">
+          <button type="button" class="menu-item tab-btn active" data-tab="all">Tất cả chat</button>
+          <button type="button" class="menu-item tab-btn" data-tab="groups">Nhóm</button>
+          <button type="button" class="menu-item tab-btn" data-tab="friends">Bạn bè</button>
+        </nav>
+        <button type="button" class="settings-btn" id="logout-btn-nav" title="Đăng xuất">Đăng xuất</button>
+      </aside>
+
+      <section class="list-col">
+        <div id="panel-all" class="list-panel">
+          <p class="all-chat-hint">Chọn nhóm hoặc bạn bè bên dưới. Tạo nhóm / thêm bạn ở tab Nhóm hoặc Bạn bè.</p>
+          <div class="all-chat-section">
+            <h5 class="all-chat-label">Nhóm</h5>
+            <div id="all-group-list"></div>
+          </div>
+          <div class="all-chat-section">
+            <h5 class="all-chat-label">Bạn bè</h5>
+            <div id="all-friend-list"></div>
+          </div>
+        </div>
+        <div id="panel-groups" class="list-panel hidden">
+          <div class="search-row group-actions">
+            <input id="new-group-name" type="text" placeholder="Tên group mới">
+            <button id="create-group-btn" type="button">Tạo</button>
+          </div>
+          <div class="search-row group-actions join-row">
+            <input id="join-group-code" type="text" placeholder="Nhập mã group">
+            <button id="join-group-btn" type="button">Join</button>
+          </div>
+          <p id="group-feedback" class="group-feedback"></p>
+          <div id="group-list"></div>
+        </div>
+        <div id="panel-friends" class="list-panel hidden">
+          <div class="search-row group-actions">
+            <input id="friend-username-input" type="text" placeholder="Tên đăng nhập bạn bè">
+            <button id="add-friend-btn" type="button">Thêm</button>
+          </div>
+          <p id="friend-feedback" class="group-feedback"></p>
+          <div id="friend-list"></div>
+        </div>
+      </section>
+
+      <section class="chat-col">
+        <header class="chat-header">
+          <div class="chat-header-inner">
+            <div>
+              <h3 id="chat-group-name">Chưa chọn group</h3>
+              <p id="chat-group-code">Tạo hoặc join group để bắt đầu chat</p>
+            </div>
+            <button type="button" id="leave-group-btn" class="leave-group-btn" disabled>Rời nhóm</button>
+          </div>
+        </header>
+        <div id="messages" class="messages"></div>
+        <footer class="chat-input-row">
+          <button id="attach-file-btn" class="icon-btn" type="button" title="Gửi file">📎</button>
+          <button id="emoji-btn" class="icon-btn" type="button" title="Chèn emoji">😊</button>
+          <input id="message-input" type="text" placeholder="Nhập tin nhắn">
+          <button id="voice-btn" class="icon-btn" type="button" title="Ghi âm">🎤</button>
+          <button id="send-message-btn" type="button">➤</button>
+        </footer>
+        <div id="emoji-picker" class="emoji-picker hidden"></div>
+        <input id="file-input" type="file" class="hidden-file-input">
+      </section>
+
+      <aside class="info-col">
+        <div class="team">
+          <div class="avatar big dark">T</div>
+          <h4 id="current-user"></h4>
+          <p>Đang đăng nhập</p>
+          <button type="button" id="logout-btn" class="logout-btn">Đăng xuất</button>
+        </div>
+        <div class="section">
+          <div class="section-title">
+            <h5>Members</h5><a href="#">See all</a>
+          </div>
+          <div class="member-stack">
+            <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>+27</span>
+          </div>
+        </div>
+        <div class="section">
+          <div class="section-title">
+            <h5>Shared files</h5><a href="#">See all</a>
+          </div>
+          <ul class="files">
+            <li>terms_of_reference.docx</li>
+            <li>contracting_agreement.xls</li>
+            <li>clientlogo.svg</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <script src="./chat.js"></script>
+</body>
+</html>

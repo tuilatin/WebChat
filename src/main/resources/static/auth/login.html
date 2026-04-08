@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng nhập - Đăng ký</title>
+  <link rel="stylesheet" href="./login.css">
+</head>
+<body>
+  <main class="auth-shell">
+    <section class="panel">
+      <h2 id="panel-tag" class="panel-tag"></h2>
+      <div class="card">
+        <div class="chat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M5 6.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2z"></path>
+          </svg>
+        </div>
+
+        <form id="login-view" autocomplete="off">
+          <h1 class="title">Đăng nhập</h1>
+          <div class="field">
+            <label for="login-username">Tên đăng nhập</label>
+            <input id="login-username" class="input" type="text" value="nguyenvana">
+          </div>
+          <div class="field">
+            <label for="login-password">Mật khẩu</label>
+            <div class="password-wrap">
+              <input id="login-password" class="input" type="password" value="12345678">
+              <button type="button" class="toggle-btn" data-target="login-password" aria-label="Hiện hoặc ẩn mật khẩu">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <p id="login-error" class="error-msg"></p>
+          <button class="submit-btn" type="submit">Đăng nhập</button>
+          <p class="switch-link">Chưa có tài khoản? <a id="show-register" href="#">Đăng ký</a></p>
+        </form>
+
+        <form id="register-view" class="hidden" autocomplete="off">
+          <h1 class="title">Tạo tài khoản</h1>
+          <div class="field">
+            <label for="register-username">Tên đăng nhập</label>
+            <input id="register-username" class="input" type="text" value="nguyenvana">
+          </div>
+          <div class="field">
+            <label for="register-password">Mật khẩu</label>
+            <div class="password-wrap">
+              <input id="register-password" class="input" type="password" value="12345678">
+              <button type="button" class="toggle-btn" data-target="register-password" aria-label="Hiện hoặc ẩn mật khẩu">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="field">
+            <label for="register-repassword">Nhập lại mật khẩu</label>
+            <div class="password-wrap">
+              <input id="register-repassword" class="input error" type="password" value="123456">
+              <button type="button" class="toggle-btn" data-target="register-repassword" aria-label="Hiện hoặc ẩn mật khẩu">
+                <svg viewBox="0 0 24 24">
+                  <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+            </div>
+            <p id="password-error" class="error-msg">Mật khẩu không khớp</p>
+          </div>
+          <p id="register-error" class="error-msg"></p>
+          <button class="submit-btn" type="submit">Đăng ký</button>
+          <p class="switch-link">Đã có tài khoản? <a id="show-login" href="#">Đăng nhập</a></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="./login.js"></script>
+</body>
+</html>

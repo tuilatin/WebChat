@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  chatapp:
+    build: .
+    ports:
+      - "4567:4567"
+    environment:
+      DB_URL: "jdbc:mysql://db:3306/chatapp?useSSL=false&serverTimezone=UTC"
+      DB_USER: "root"
+      DB_PASSWORD: "example"
+      PORT: "4567"
+    depends_on:
+      - db
+    volumes:
+      - ./uploads:/app/uploads
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: chatapp
+    volumes:
+      - db-data:/var/lib/mysql
+volumes:
+  db-data:
