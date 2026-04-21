@@ -60,7 +60,10 @@
               <h3 id="chat-group-name">Chưa chọn group</h3>
               <p id="chat-group-code">Tạo hoặc join group để bắt đầu chat</p>
             </div>
-            <button type="button" id="leave-group-btn" class="leave-group-btn" disabled>Rời nhóm</button>
+            <div class="chat-header-actions">
+              <button type="button" id="rename-group-btn" class="manage-group-btn">Đổi tên</button>
+              <button type="button" id="leave-group-btn" class="leave-group-btn" disabled>Rời nhóm</button>
+            </div>
           </div>
         </header>
         <div id="messages" class="messages"></div>
@@ -84,11 +87,15 @@
         </div>
         <div class="section">
           <div class="section-title">
-            <h5>Members</h5><a href="#">See all</a>
+            <h5>Members</h5><span id="member-role-badge" class="member-role-badge">member</span>
           </div>
-          <div class="member-stack">
-            <span>A</span><span>B</span><span>C</span><span>D</span><span>E</span><span>+27</span>
+          <div id="group-manage-tools" class="group-manage-tools hidden">
+            <div class="manage-row">
+              <input id="invite-username-input" type="text" placeholder="Mời user vào nhóm">
+              <button id="invite-member-btn" type="button">Mời</button>
+            </div>
           </div>
+          <div id="member-list" class="member-list"></div>
         </div>
         <div class="section">
           <div class="section-title">

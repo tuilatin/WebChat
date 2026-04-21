@@ -140,6 +140,103 @@ public class Main {
             return GSON.toJson(Map.of("ok", true, "message", "Da roi nhom"));
         });
 
+        get("/api/groups/:groupId/members", (req, res) -> {
+            res.type("application/json");
+            int groupId = parseGroupId(req.params("groupId"));
+            String username = normalize(req.queryParams("username"));
+            if (groupId <= 0 || username.isBlank()) {
+                res.status(400);
+                return GSON.toJson(Map.of("ok", false, "message", "Thieu thong tin"));
+            }
+            if (!ChatDatabase.isMember(groupId, username)) {
+                res.status(403);
+                return GSON.toJson(Map.of("ok", false, "message", "Ban khong thuoc nhom nay"));
+            }
+            String viewerRole = ChatDatabase.isGroupAdmin(groupId, username) ? "admin" : "member";
+            return GSON.toJson(Map.of(
+                    "ok", true,
+                    "members", ChatDatabase.getGroupMembers(groupId),
+                    "viewerRole", viewerRole
+            ));
+        });
+
+        post("/api/groups/:groupId/rename", (req, res) -> {
+            res.type("application/json");
+            int groupId = parseGroupId(req.params("groupId"));
+            JsonObject payload = GSON.fromJson(req.body(), JsonObject.class);
+            String username = normalize(getString(payload, "username"));
+            String groupName = normalize(getString(payload, "groupName"));
+            if (groupId <= 0 || username.isBlank() || groupName.isBlank()) {
+                res.status(400);
+                return GSON.toJson(Map.of("ok", false, "message", "Thieu thong tin"));
+            }
+            if (!ChatDatabase.renameGroup(groupId, username, groupName)) {
+                res.status(403);
+                return GSON.toJson(Map.of("ok", false, "message", "Chi admin moi duoc doi ten nhom"));
+            }
+            return GSON.toJson(Map.of("ok", true, "message", "Da doi ten nhom"));
+        });
+
+        post("/api/groups/:groupId/invite", (req, res) -> {
+            res.type("application/json");
+            int groupId = parseGroupId(req.params("groupId"));
+            JsonObject payload = GSON.fromJson(req.body(), JsonObject.class);
+            String username = normalize(getString(payload, "username"));
+            String targetUsername = normalize(getString(payload, "targetUsername"));
+            if (groupId <= 0 || username.isBlank() || targetUsername.isBlank()) {
+                res.status(400);
+                return GSON.toJson(Map.of("ok", false, "message", "Thieu thong tin"));
+            }
+            String target = AuthDatabase.resolveUsername(targetUsername);
+            if (target == null) {
+                res.status(404);
+                return GSON.toJson(Map.of("ok", false, "message", "Khong tim thay nguoi dung nay"));
+            }
+            if (ChatDatabase.isMember(groupId, target)) {
+                return GSON.toJson(Map.of("ok", true, "message", "Nguoi nay da trong nhom"));
+            }
+            if (!ChatDatabase.inviteMember(groupId, username, target)) {
+                res.status(403);
+                return GSON.toJson(Map.of("ok", false, "message", "Chi admin moi duoc moi thanh vien"));
+            }
+            return GSON.toJson(Map.of("ok", true, "message", "Moi thanh vien thanh cong"));
+        });
+
+        post("/api/groups/:groupId/kick", (req, res) -> {
+            res.type("application/json");
+            int groupId = parseGroupId(req.params("groupId"));
+            JsonObject payload = GSON.fromJson(req.body(), JsonObject.class);
+            String username = normalize(getString(payload, "username"));
+            String targetUsername = normalize(getString(payload, "targetUsername"));
+            if (groupId <= 0 || username.isBlank() || targetUsername.isBlank()) {
+                res.status(400);
+                return GSON.toJson(Map.of("ok", false, "message", "Thieu thong tin"));
+            }
+            if (!ChatDatabase.kickMember(groupId, username, targetUsername)) {
+                res.status(403);
+                return GSON.toJson(Map.of("ok", false, "message", "Khong du quyen kick thanh vien"));
+            }
+            return GSON.toJson(Map.of("ok", true, "message", "Da kick thanh vien"));
+        });
+
+        post("/api/groups/:groupId/role", (req, res) -> {
+            res.type("application/json");
+            int groupId = parseGroupId(req.params("groupId"));
+            JsonObject payload = GSON.fromJson(req.body(), JsonObject.class);
+            String username = normalize(getString(payload, "username"));
+            String targetUsername = normalize(getString(payload, "targetUsername"));
+            String role = normalize(getString(payload, "role"));
+            if (groupId <= 0 || username.isBlank() || targetUsername.isBlank() || role.isBlank()) {
+                res.status(400);
+                return GSON.toJson(Map.of("ok", false, "message", "Thieu thong tin"));
+            }
+            if (!ChatDatabase.updateMemberRole(groupId, username, targetUsername, role)) {
+                res.status(403);
+                return GSON.toJson(Map.of("ok", false, "message", "Khong du quyen doi role"));
+            }
+            return GSON.toJson(Map.of("ok", true, "message", "Da cap nhat role"));
+        });
+
         post("/api/friends", (req, res) -> {
             res.type("application/json");
             try {

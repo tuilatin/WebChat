@@ -17,6 +17,21 @@ public final class Database {
     private static final String DB_PASSWORD = getEnv("DB_PASSWORD", "");
     private static final Dialect DIALECT = detectDialect(DB_URL);
 
+    static {
+        // Load JDBC drivers for fat JAR compatibility
+        try {
+            if (DB_URL.startsWith("jdbc:postgresql:")) {
+                Class.forName("org.postgresql.Driver");
+            } else if (DB_URL.startsWith("jdbc:mysql:")) {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+            } else if (DB_URL.startsWith("jdbc:sqlite:")) {
+                Class.forName("org.sqlite.JDBC");
+            }
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("Cannot load JDBC driver", e);
+        }
+    }
+
     private Database() {
         // utility class
     }

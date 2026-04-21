@@ -5,8 +5,8 @@ services:
     ports:
       - "4567:4567"
     environment:
-      DB_URL: "jdbc:mysql://db:3306/chatapp?useSSL=false&serverTimezone=UTC"
-      DB_USER: "root"
+      DB_URL: "jdbc:postgresql://db:5432/chatapp"
+      DB_USER: "postgres"
       DB_PASSWORD: "example"
       PORT: "4567"
     depends_on:
@@ -14,11 +14,12 @@ services:
     volumes:
       - ./uploads:/app/uploads
   db:
-    image: mysql:8.0
+    image: postgres:15
     environment:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: chatapp
+      POSTGRES_DB: chatapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: example
     volumes:
-      - db-data:/var/lib/mysql
+      - db-data:/var/lib/postgresql/data
 volumes:
   db-data:

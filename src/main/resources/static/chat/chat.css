@@ -56,8 +56,19 @@ body { background: #f5f7fb; color: var(--text); }
 .chat-col { display: grid; grid-template-rows: auto 1fr auto; border-right: 1px solid var(--line); }
 .chat-header { padding: 16px 18px; border-bottom: 1px solid var(--line); }
 .chat-header-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.chat-header-actions { display: flex; gap: 8px; align-items: center; }
 .chat-header h3 { font-size: 18px; margin-bottom: 4px; }
 .chat-header p { font-size: 12px; color: var(--muted); }
+.manage-group-btn {
+  border: 1px solid var(--line);
+  background: #f7f9fd;
+  color: #37527a;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
 .leave-group-btn {
   flex-shrink: 0;
   border: 1px solid #e0a0a0;
@@ -117,8 +128,26 @@ body { background: #f5f7fb; color: var(--text); }
 .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .section-title h5 { font-size: 13px; }
 .section-title a { font-size: 12px; color: var(--primary); text-decoration: none; }
-.member-stack { display: flex; gap: 6px; flex-wrap: wrap; }
-.member-stack span { width: 30px; height: 30px; border-radius: 50%; background: var(--chip); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+.member-role-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #54657d;
+  background: #eef3fb;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.group-manage-tools.hidden { display: none; }
+.manage-row { display: grid; grid-template-columns: 1fr 52px; gap: 8px; margin-bottom: 8px; }
+.manage-row input { height: 34px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font-size: 12px; }
+.manage-row button { border: 0; border-radius: 8px; background: var(--primary); color: #fff; font-size: 12px; cursor: pointer; }
+.member-list { display: flex; flex-direction: column; gap: 6px; }
+.member-item { background: var(--chip); border-radius: 8px; padding: 8px; }
+.member-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; }
+.role-chip { font-size: 10px; text-transform: uppercase; color: #536b90; background: #dfebff; padding: 2px 6px; border-radius: 999px; }
+.member-actions { margin-top: 6px; display: flex; gap: 6px; }
+.member-actions button { border: 1px solid #d6deeb; background: #fff; color: #455a78; border-radius: 7px; padding: 2px 6px; font-size: 11px; cursor: pointer; }
+.member-actions .danger { border-color: #e4b6b6; color: #ae3030; background: #fff6f6; }
 .files { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .files li { background: var(--chip); border-radius: 8px; padding: 8px 10px; font-size: 12px; }
 

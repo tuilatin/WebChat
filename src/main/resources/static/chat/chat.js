@@ -7,6 +7,8 @@ var syncTimer = null;
 var mediaRecorder = null;
 var audioChunks = [];
 var isRecording = false;
+var currentViewerRole = "member";
+var currentGroupMembers = [];
 
 var currentUserEl = document.getElementById("current-user");
 var groupFeedbackEl = document.getElementById("group-feedback");
@@ -26,6 +28,11 @@ var leaveGroupBtn = document.getElementById("leave-group-btn");
 var friendFeedbackEl = document.getElementById("friend-feedback");
 var friendListEl = document.getElementById("friend-list");
 var friendUsernameInput = document.getElementById("friend-username-input");
+var renameGroupBtn = document.getElementById("rename-group-btn");
+var memberRoleBadge = document.getElementById("member-role-badge");
+var groupManageToolsEl = document.getElementById("group-manage-tools");
+var memberListEl = document.getElementById("member-list");
+var inviteUsernameInput = document.getElementById("invite-username-input");
 
 if (!currentUser) {
   window.location.href = "../auth/login.html";
@@ -36,6 +43,7 @@ currentUserEl.textContent = currentUser;
 function updateLeaveButtonVisibility() {
   var show = !!(activeGroupId && !activePeer && (uiMode === "groups" || uiMode === "all"));
   leaveGroupBtn.style.display = show ? "" : "none";
+  renameGroupBtn.style.display = show ? "" : "none";
 }
 
 function doLogout() {
@@ -72,6 +80,10 @@ function isDmChat() {
 
 function isGroupChat() {
   return !!activeGroupId && !activePeer;
+}
+
+function isGroupAdmin() {
+  return currentViewerRole === "admin";
 }
 
 function api(path, method, body) {
@@ -217,9 +229,13 @@ function setTab(tab) {
     activePeer = null;
     loadGroups().then(function () {
       refreshSocketRoom();
+      loadGroupMembers();
     });
   } else if (tab === "friends") {
     activeGroupId = null;
+    currentGroupMembers = [];
+    currentViewerRole = "member";
+    renderMemberList();
     if (isDmChat()) {
       groupNameEl.textContent = "Chat với " + activePeer;
       groupCodeEl.textContent = "Tin nhắn riêng";
@@ -239,8 +255,12 @@ function setTab(tab) {
       refreshSocketRoom();
       if (isGroupChat()) {
         loadMessagesApi();
+        loadGroupMembers();
       } else if (isDmChat()) {
         loadDmMessagesApi();
+        currentGroupMembers = [];
+        currentViewerRole = "member";
+        renderMemberList();
       }
     });
   }
@@ -285,9 +305,12 @@ function fillFriendList(el, friends) {
     item.addEventListener("click", function () {
       activeGroupId = null;
       activePeer = name;
+      currentGroupMembers = [];
+      currentViewerRole = "member";
       leaveGroupBtn.disabled = true;
       updateLeaveButtonVisibility();
       renderMessages([]);
+      renderMemberList();
       groupNameEl.textContent = "Chat với " + name;
       groupCodeEl.textContent = "Tin nhắn riêng";
       refreshSocketRoom();
@@ -361,6 +384,7 @@ function fillGroupList(el, groups) {
       groupCodeEl.textContent = "Mã group: " + group.code;
       refreshSocketRoom();
       loadMessagesApi();
+      loadGroupMembers();
       if (uiMode === "all") {
         loadGroups();
         loadFriends();
@@ -380,6 +404,91 @@ function renderGroups(groups) {
 
 function renderAllGroups(groups) {
   fillGroupList(allGroupListEl, groups);
+}
+
+function renderMemberList() {
+  memberListEl.innerHTML = "";
+  if (!isGroupChat()) {
+    memberRoleBadge.textContent = "-";
+    groupManageToolsEl.classList.add("hidden");
+    memberListEl.innerHTML = '<p class="group-feedback">Chọn nhóm để xem thành viên.</p>';
+    return;
+  }
+  memberRoleBadge.textContent = currentViewerRole || "member";
+  groupManageToolsEl.classList.toggle("hidden", !isGroupAdmin());
+  if (!currentGroupMembers || currentGroupMembers.length === 0) {
+    memberListEl.innerHTML = '<p class="group-feedback">Nhóm chưa có thành viên.</p>';
+    return;
+  }
+  currentGroupMembers.forEach(function (m) {
+    var item = document.createElement("div");
+    item.className = "member-item";
+    var role = (m.role || "member").toLowerCase();
+    var escapedUser = escapeHtml(m.username || "");
+    item.innerHTML = '<div class="member-top"><strong>' + escapedUser + '</strong><span class="role-chip">' + escapeHtml(role) + '</span></div>';
+    if (isGroupAdmin() && role !== "owner" && m.username !== currentUser) {
+      var actions = document.createElement("div");
+      actions.className = "member-actions";
+      var roleBtn = document.createElement("button");
+      roleBtn.type = "button";
+      roleBtn.textContent = role === "admin" ? "Hạ quyền" : "Lên admin";
+      roleBtn.addEventListener("click", function () {
+        var nextRole = role === "admin" ? "member" : "admin";
+        api("/api/groups/" + activeGroupId + "/role", "POST", {
+          username: currentUser,
+          targetUsername: m.username,
+          role: nextRole
+        }).then(function (result) {
+          setFeedback(result.data.message || "Cập nhật role", !!result.data.ok);
+          if (result.data.ok) {
+            loadGroupMembers();
+          }
+        });
+      });
+      actions.appendChild(roleBtn);
+
+      var kickBtn = document.createElement("button");
+      kickBtn.type = "button";
+      kickBtn.className = "danger";
+      kickBtn.textContent = "Kick";
+      kickBtn.addEventListener("click", function () {
+        if (!window.confirm("Kick " + m.username + " khỏi nhóm?")) {
+          return;
+        }
+        api("/api/groups/" + activeGroupId + "/kick", "POST", {
+          username: currentUser,
+          targetUsername: m.username
+        }).then(function (result) {
+          setFeedback(result.data.message || "Đã kick", !!result.data.ok);
+          if (result.data.ok) {
+            loadGroupMembers();
+            loadGroups();
+          }
+        });
+      });
+      actions.appendChild(kickBtn);
+      item.appendChild(actions);
+    }
+    memberListEl.appendChild(item);
+  });
+}
+
+function loadGroupMembers() {
+  if (!isGroupChat()) {
+    currentGroupMembers = [];
+    currentViewerRole = "member";
+    renderMemberList();
+    return Promise.resolve();
+  }
+  return api("/api/groups/" + activeGroupId + "/members?username=" + encodeURIComponent(currentUser), "GET")
+    .then(function (result) {
+      if (!result.data.ok) {
+        return;
+      }
+      currentGroupMembers = result.data.members || [];
+      currentViewerRole = result.data.viewerRole || "member";
+      renderMemberList();
+    });
 }
 
 function renderMessages(messages) {
@@ -483,6 +592,9 @@ function loadGroups() {
         renderAllGroups(groups);
       }
       updateLeaveButtonVisibility();
+      if (isGroupChat()) {
+        loadGroupMembers();
+      }
     }).catch(function () {
       setFeedback("Không kết nối được máy chủ", false);
     });
@@ -594,6 +706,57 @@ document.getElementById("create-group-btn").addEventListener("click", function (
     });
 });
 
+document.getElementById("invite-member-btn").addEventListener("click", function () {
+  var target = inviteUsernameInput.value.trim();
+  if (!isGroupChat()) {
+    setFeedback("Chọn nhóm trước khi mời", false);
+    return;
+  }
+  if (!target) {
+    setFeedback("Nhập username cần mời", false);
+    return;
+  }
+  api("/api/groups/" + activeGroupId + "/invite", "POST", {
+    username: currentUser,
+    targetUsername: target
+  }).then(function (result) {
+    setFeedback(result.data.message || "Đã mời", !!result.data.ok);
+    if (result.data.ok) {
+      inviteUsernameInput.value = "";
+      loadGroupMembers();
+      loadGroups();
+    }
+  }).catch(function () {
+    setFeedback("Không kết nối được máy chủ", false);
+  });
+});
+
+renameGroupBtn.addEventListener("click", function () {
+  if (!isGroupChat()) {
+    setFeedback("Chọn nhóm trước khi đổi tên", false);
+    return;
+  }
+  if (!isGroupAdmin()) {
+    setFeedback("Chỉ admin mới đổi tên nhóm", false);
+    return;
+  }
+  var nextName = window.prompt("Tên nhóm mới:");
+  if (!nextName) {
+    return;
+  }
+  api("/api/groups/" + activeGroupId + "/rename", "POST", {
+    username: currentUser,
+    groupName: nextName
+  }).then(function (result) {
+    setFeedback(result.data.message || "Đã đổi tên nhóm", !!result.data.ok);
+    if (result.data.ok) {
+      loadGroups();
+    }
+  }).catch(function () {
+    setFeedback("Không kết nối được máy chủ", false);
+  });
+});
+
 leaveGroupBtn.addEventListener("click", function () {
   if (!activeGroupId) {
     return;
@@ -609,9 +772,12 @@ leaveGroupBtn.addEventListener("click", function () {
       }
       setFeedback("Đã rời nhóm", true);
       activeGroupId = null;
+      currentGroupMembers = [];
+      currentViewerRole = "member";
       groupNameEl.textContent = "Chưa chọn group";
       groupCodeEl.textContent = "Tạo hoặc join group để bắt đầu chat";
       renderMessages([]);
+      renderMemberList();
       updateLeaveButtonVisibility();
       loadGroups();
       if (uiMode === "all") {
@@ -785,6 +951,7 @@ voiceBtn.addEventListener("click", async function () {
 
 connectWebSocket();
 updateLeaveButtonVisibility();
+renderMemberList();
 setTab("all");
 syncTimer = setInterval(function () {
   if (isGroupChat()) {

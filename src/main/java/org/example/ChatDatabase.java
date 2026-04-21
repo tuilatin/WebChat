@@ -27,10 +27,11 @@ public class ChatDatabase {
                 CREATE TABLE IF NOT EXISTS group_members (
                     group_id INTEGER NOT NULL,
                     username %s NOT NULL,
+                    role %s NOT NULL DEFAULT 'member',
                     joined_at %s,
                     PRIMARY KEY (group_id, username)
                 )
-                """.formatted(usernameColumn, timestampColumn);
+                """.formatted(usernameColumn, messageTypeColumn, timestampColumn);
         String messagesSql = """
                 CREATE TABLE IF NOT EXISTS group_messages (
                     id %s,
@@ -84,6 +85,7 @@ public class ChatDatabase {
             ensureColumn(conn, "direct_messages", "message_type", "TEXT NOT NULL DEFAULT 'text'");
             ensureColumn(conn, "direct_messages", "file_url", "TEXT");
             ensureColumn(conn, "direct_messages", "file_name", "TEXT");
+            ensureColumn(conn, "group_members", "role", "TEXT NOT NULL DEFAULT 'member'");
         } catch (SQLException e) {
             throw new RuntimeException("Cannot initialize chat database", e);
         }
@@ -241,7 +243,7 @@ public class ChatDatabase {
     public static Group createGroup(String groupName, String ownerUsername) {
         String code = generateCode();
         String insertGroup = "INSERT INTO chat_groups (name, code, owner_username) VALUES (?, ?, ?)";
-        String addMember = "INSERT INTO group_members (group_id, username) VALUES (?, ?)";
+        String addMember = "INSERT INTO group_members (group_id, username, role) VALUES (?, ?, ?)";
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
             try (PreparedStatement groupStmt = conn.prepareStatement(insertGroup, Statement.RETURN_GENERATED_KEYS)) {
@@ -258,6 +260,7 @@ public class ChatDatabase {
                     try (PreparedStatement memberStmt = conn.prepareStatement(addMember)) {
                         memberStmt.setInt(1, groupId);
                         memberStmt.setString(2, ownerUsername);
+                        memberStmt.setString(3, "admin");
                         memberStmt.executeUpdate();
                     }
                     conn.commit();
@@ -321,7 +324,7 @@ public class ChatDatabase {
 
     public static boolean joinGroup(String code, String username) {
         String find = "SELECT id FROM chat_groups WHERE code = ?";
-        String join = Database.insertIgnore("INSERT INTO group_members (group_id, username) VALUES (?, ?)");
+        String join = Database.insertIgnore("INSERT INTO group_members (group_id, username, role) VALUES (?, ?, 'member')");
         try (Connection conn = Database.getConnection();
              PreparedStatement findStmt = conn.prepareStatement(find)) {
             findStmt.setString(1, code);
@@ -381,6 +384,154 @@ public class ChatDatabase {
         } catch (SQLException e) {
             return false;
         }
+    }
+
+    public static String getGroupOwner(int groupId) {
+        String sql = "SELECT owner_username FROM chat_groups WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, groupId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    return "";
+                }
+                return rs.getString("owner_username");
+            }
+        } catch (SQLException e) {
+            return "";
+        }
+    }
+
+    public static String getMemberRole(int groupId, String username) {
+        String sql = "SELECT role FROM group_members WHERE group_id = ? AND username = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, groupId);
+            stmt.setString(2, username);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    return "";
+                }
+                return rs.getString("role");
+            }
+        } catch (SQLException e) {
+            return "";
+        }
+    }
+
+    public static boolean isGroupAdmin(int groupId, String username) {
+        if (groupId <= 0 || username == null || username.isBlank()) {
+            return false;
+        }
+        String owner = getGroupOwner(groupId);
+        if (!owner.isBlank() && owner.equals(username)) {
+            return true;
+        }
+        return "admin".equalsIgnoreCase(getMemberRole(groupId, username));
+    }
+
+    public static boolean renameGroup(int groupId, String actor, String newName) {
+        if (groupId <= 0 || actor == null || actor.isBlank() || newName == null || newName.isBlank()) {
+            return false;
+        }
+        if (!isGroupAdmin(groupId, actor)) {
+            return false;
+        }
+        String sql = "UPDATE chat_groups SET name = ? WHERE id = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, newName.trim());
+            stmt.setInt(2, groupId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    public static boolean inviteMember(int groupId, String actor, String targetUsername) {
+        if (groupId <= 0 || actor == null || actor.isBlank() || targetUsername == null || targetUsername.isBlank()) {
+            return false;
+        }
+        if (!isGroupAdmin(groupId, actor) || isMember(groupId, targetUsername)) {
+            return false;
+        }
+        String sql = Database.insertIgnore("INSERT INTO group_members (group_id, username, role) VALUES (?, ?, 'member')");
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, groupId);
+            stmt.setString(2, targetUsername.trim());
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    public static boolean kickMember(int groupId, String actor, String targetUsername) {
+        if (groupId <= 0 || actor == null || actor.isBlank() || targetUsername == null || targetUsername.isBlank()) {
+            return false;
+        }
+        String owner = getGroupOwner(groupId);
+        if (!isGroupAdmin(groupId, actor) || targetUsername.equals(owner) || targetUsername.equals(actor)) {
+            return false;
+        }
+        String sql = "DELETE FROM group_members WHERE group_id = ? AND username = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, groupId);
+            stmt.setString(2, targetUsername.trim());
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    public static boolean updateMemberRole(int groupId, String actor, String targetUsername, String role) {
+        if (groupId <= 0 || actor == null || actor.isBlank() || targetUsername == null || targetUsername.isBlank()) {
+            return false;
+        }
+        String normalizedRole = role == null ? "" : role.trim().toLowerCase();
+        if (!"admin".equals(normalizedRole) && !"member".equals(normalizedRole)) {
+            return false;
+        }
+        String owner = getGroupOwner(groupId);
+        if (!isGroupAdmin(groupId, actor) || targetUsername.equals(owner)) {
+            return false;
+        }
+        String sql = "UPDATE group_members SET role = ? WHERE group_id = ? AND username = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, normalizedRole);
+            stmt.setInt(2, groupId);
+            stmt.setString(3, targetUsername.trim());
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
+    public static List<GroupMember> getGroupMembers(int groupId) {
+        String owner = getGroupOwner(groupId);
+        String sql = """
+                SELECT username, role
+                FROM group_members
+                WHERE group_id = ?
+                ORDER BY %s
+                """.formatted(Database.lower("username"));
+        List<GroupMember> members = new ArrayList<>();
+        try (Connection conn = Database.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, groupId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String username = rs.getString("username");
+                    String role = rs.getString("role");
+                    boolean isOwner = owner.equals(username);
+                    members.add(new GroupMember(username, isOwner ? "owner" : role));
+                }
+            }
+        } catch (SQLException ignored) {
+        }
+        return members;
     }
 
     public static boolean addMessage(int groupId, String username, String content) {
@@ -475,4 +626,6 @@ public class ChatDatabase {
             String fileUrl,
             String fileName
     ) {}
+
+    public record GroupMember(String username, String role) {}
 }
